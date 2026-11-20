@@ -1,0 +1,14 @@
+{
+  "name": "MaaCare",
+  "short_name": "MaaCare",
+  "description": "Mother and child health guide in 10 languages, with voice reading and offline use.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffe4ec",
+  "theme_color": "#c2185b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
