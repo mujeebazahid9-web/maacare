@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#c2185b">
+<meta name="description" content="MaaCare - a free mother and child health guide in 10 languages, with voice reading and offline use.">
+<title>MaaCare</title>
+<style>
+:root{--pink:#c2185b;--pinkd:#880e4f;--green:#2e7d32;--red:#c62828;--ink:#222}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;color:var(--ink);font:20px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Naskh Arabic","Noto Sans Bengali","Noto Sans Devanagari",Tahoma,sans-serif;background:linear-gradient(#ffe4ec,#d6f0e2) fixed}
+.wrap{max-width:560px;margin:0 auto;padding:12px 16px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0 12px}
+.brand{font-weight:800;font-size:26px;color:var(--pinkd)}
+.logo{color:var(--pink)}
+button{font:inherit;cursor:pointer;border:0}
+.pill{background:#fff;color:var(--pinkd);border:2px solid var(--pink);border-radius:999px;padding:8px 16px;min-height:44px;font-weight:700}
+.big{display:flex;align-items:center;gap:16px;width:100%;min-height:84px;margin:12px 0;padding:16px 20px;border-radius:20px;background:#fff;color:var(--pinkd);font-size:24px;font-weight:800;text-align:start;box-shadow:0 3px 10px #0002}
+.big .ic{font-size:40px}
+.big.red{background:var(--red);color:#fff}
+.card{background:#fff;border-radius:18px;padding:14px 16px;margin:12px 0;box-shadow:0 2px 8px #0001;display:flex;gap:12px;align-items:center}
+.card .tx{flex:1}
+.card .em{font-size:34px;flex:none}
+.spk{flex:none;width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;font-size:24px}
+.h1{font-size:28px;font-weight:800;color:var(--pinkd);margin:8px 0}
+.h2{font-size:22px;font-weight:800;color:var(--pinkd);margin:18px 0 6px}
+.tagline{font-size:22px;font-weight:700;color:var(--pinkd);margin:4px 0 12px}
+.back{background:none;color:var(--pinkd);font-weight:700;min-height:44px;padding:4px 0}
+.langs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lang{background:#fff;color:var(--pinkd);border:3px solid transparent;border-radius:16px;min-height:72px;font-size:22px;font-weight:800;box-shadow:0 2px 8px #0001}
+.lang.on{border-color:var(--pink)}
+.banner{background:var(--red);color:#fff;border-radius:16px;padding:14px 16px;font-weight:800;font-size:22px;text-align:center}
+.weekbox{text-align:center;background:#fff;border-radius:20px;padding:16px;margin:12px 0}
+.weeknum{font-size:64px;font-weight:800;color:var(--pink);line-height:1.1}
+.tri{font-weight:800;color:var(--green)}
+input[type=range]{width:100%;height:44px;accent-color:var(--pink)}
+input[type=date]{width:100%;font:inherit;font-size:22px;padding:12px;border-radius:12px;border:2px solid var(--pink);background:#fff}
+.bar{height:12px;background:#f3e0e7;border-radius:6px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--green)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:12px 16px;margin:8px 0;border:3px solid transparent}
+.row.done{opacity:.55}
+.row.next{border-color:var(--green)}
+.tag{background:var(--green);color:#fff;border-radius:999px;font-size:15px;padding:2px 12px;font-weight:700;white-space:nowrap}
+.due{font-size:28px;font-weight:800;color:var(--pink)}
+.note{font-size:16px;color:#555;margin:10px 0}
+.warn{background:#fff8e1;border:2px solid #f9a825;border-radius:12px;padding:10px 14px;font-size:16px;margin:12px 0}
+.cta{display:block;width:100%;background:var(--green);color:#fff;border-radius:16px;min-height:60px;font-size:20px;font-weight:800;margin:12px 0;padding:10px 16px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:12px;max-width:90%;font-size:16px;display:none;z-index:9;text-align:center}
+:focus-visible{outline:4px solid #1565c0;outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="logo" aria-hidden="true">&#9829;</span> MaaCare</div>
+    <button id="langBtn" class="pill" aria-label="Language">&#127760; <span id="langName"></span></button>
+  </header>
+  <main id="app"></main>
+  <footer id="foot"></footer>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="i18n.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* After a midwife or doctor who speaks a language has checked its medical text,
+     add its code here (for example ['en','ur','pa']) so the "not yet reviewed" note is hidden. */
+  var REVIEWED_LANGS = [];
+
+  var CHECK = [12, 20, 26, 30, 34, 36, 38, 40];                 /* WHO: 8 antenatal contacts (weeks) */
+  var VACC = [['remBirth', 0], ['a6w', 42], ['a10w', 70], ['a14w', 98], ['a9m', 274], ['a15m', 456]]; /* days after due date */
+  var LOCALE = { en: 'en-GB', ur: 'ur-PK', pa: 'pa-Arab-PK', ar: 'ar', hi: 'hi-IN', bn: 'bn-BD', es: 'es', fr: 'fr', sw: 'sw', id: 'id' };
+  var SIGNS = [['🩸', 'd1'], ['🤕', 'd2'], ['⚡', 'd3'], ['🌡️', 'd4'], ['👶', 'd5'], ['💧', 'd6'], ['😣', 'd7'], ['💨', 'd8']];
+
+  var S = { lang: 'en', screen: 'home', week: 20, lmp: '', talking: '' };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function store(k, v) {
+    try { if (v === undefined) { return localStorage.getItem(k); } localStorage.setItem(k, v); } catch (e) {}
+    return null;
+  }
+  function L() {
+    for (var i = 0; i < LANGS.length; i++) { if (LANGS[i].code === S.lang) { return LANGS[i]; } }
+    return LANGS[0];
+  }
+  function t(k, v) {
+    var s = (I18N[S.lang] && I18N[S.lang][k]) || I18N.en[k] || k;
+    if (v) { for (var x in v) { s = s.split('{' + x + '}').join(v[x]); } }
+    return s;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  }
+
+  /* ---------- dates ---------- */
+  function parseD(v) {
+    var p = String(v).split('-');
+    if (p.length !== 3) { return null; }
+    var d = new Date(+p[0], +p[1] - 1, +p[2], 12, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function today() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 12, 0, 0); }
+  function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+  function z2(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + z2(d.getMonth() + 1) + '-' + z2(d.getDate()); }
+  function fmt(d) {
+    try { return new Intl.DateTimeFormat(LOCALE[S.lang] || 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d); }
+    catch (e) { return iso(d); }
+  }
+  function lmpInfo(v) {
+    var d = parseD(v);
+    if (!d) { return null; }
+    var days = Math.round((today() - d) / 864e5);
+    if (days < 0 || days > 300) { return null; }
+    return { lmp: d, days: days, week: Math.floor(days / 7) + 1 };
+  }
+
+  /* ---------- voice ---------- */
+  var tt;
+  function toast(m) {
+    var e = $('toast'); e.textContent = m; e.style.display = 'block';
+    clearTimeout(tt); tt = setTimeout(function () { e.style.display = 'none'; }, 3500);
+  }
+  function speak(text) {
+    var ss = window.speechSynthesis;
+    if (!ss || typeof SpeechSynthesisUtterance === 'undefined') { toast(t('voiceNA')); return; }
+    if (ss.speaking && S.talking === text) { ss.cancel(); S.talking = ''; return; }
+    ss.cancel();
+    var u = new SpeechSynthesisUtterance(text), vs = ss.getVoices() || [], l = L(), v = null, i, j;
+    if (vs.length) {
+      for (i = 0; i < l.tts.length && !v; i++) {
+        for (j = 0; j < vs.length; j++) {
+          if (vs[j].lang.toLowerCase().replace('_', '-').indexOf(l.tts[i]) === 0) { v = vs[j]; break; }
+        }
+      }
+      if (!v) { toast(t('voiceNA')); return; }
+      u.voice = v; u.lang = v.lang;
+    } else {
+      u.lang = l.tts[0];
+    }
+    u.rate = 0.9; S.talking = text;
+    u.onend = function () { S.talking = ''; };
+    ss.speak(u);
+  }
+
+  /* ---------- building blocks ---------- */
+  function spk(text) {
+    return '<button class="spk" data-say="' + esc(text) + '" aria-label="' + esc(t('listen')) + '">🔊</button>';
+  }
+  function card(em, text, bold) {
+    return '<div class="card"><div class="em" aria-hidden="true">' + em + '</div><div class="tx">' +
+      (bold ? '<b>' + esc(text) + '</b>' : esc(text)) + '</div>' + spk(text) + '</div>';
+  }
+  function big(go, ic, label, red) {
+    return '<button class="big' + (red ? ' red' : '') + '" data-go="' + go + '"><span class="ic" aria-hidden="true">' + ic + '</span><span>' + esc(label) + '</span></button>';
+  }
+  function backBtn() {
+    return '<button class="back" data-go="home">' + (L().dir === 'rtl' ? '→ ' : '← ') + esc(t('back')) + '</button>';
+  }
+
+  /* ---------- screens ---------- */
+  function vLang() {
+    var h = '<div class="h1">' + esc(t('chooseLang')) + '</div><div class="langs">';
+    LANGS.forEach(function (l) {
+      h += '<button class="lang' + (l.code === S.lang ? ' on' : '') + '" data-lang="' + l.code + '" lang="' + l.code + '" dir="' + l.dir + '">' + l.name + '</button>';
+    });
+    return h + '</div>';
+  }
+  function vHome() {
+    return '<div class="tagline">' + esc(t('tagline')) + '</div>' +
+      big('danger', '🚨', t('btnDanger'), true) +
+      big('preg', '🤰', t('btnPreg')) +
+      big('remind', '⏰', t('btnRemind'));
+  }
+  function triOf(w) { return w <= 13 ? 1 : (w <= 27 ? 2 : 3); }
+  function tipsHtml() {
+    var n = triOf(S.week);
+    return card('💡', t('tip' + n + 'a')) + card('💡', t('tip' + n + 'b'));
+  }
+  function vPreg() {
+    var w = S.week;
+    return backBtn() + '<div class="h1">' + esc(t('pregTitle')) + '</div>' +
+      '<div class="weekbox"><div>' + esc(t('weekLabel')) + '</div><div class="weeknum" id="wk">' + w + '</div>' +
+      '<div class="tri" id="tri">' + esc(t('tri' + triOf(w))) + '</div>' +
+      '<input type="range" id="slider" min="1" max="40" value="' + w + '" aria-label="' + esc(t('pregSlide')) + '">' +
+      '<div class="bar"><i id="barfill" style="width:' + (w / 40 * 100) + '%"></i></div>' +
+      '<div class="note">' + esc(t('pregSlide')) + '</div></div>' +
+      '<div id="tips">' + tipsHtml() + '</div>';
+  }
+  function updPreg() {
+    $('wk').textContent = S.week;
+    $('tri').textContent = t('tri' + triOf(S.week));
+    $('barfill').style.width = (S.week / 40 * 100) + '%';
+    $('tips').innerHTML = tipsHtml();
+  }
+  function vDanger() {
+    var all = [t('dangerIntro')];
+    var h = backBtn() + '<div class="h1">' + esc(t('dangerTitle')) + '</div><div class="banner">' + esc(t('dangerAction')) + '</div>' +
+      '<p>' + esc(t('dangerIntro')) + '</p>';
+    SIGNS.forEach(function (s) { all.push(t(s[1])); h += card(s[0], t(s[1]), true); });
+    h += '<button class="cta" data-say="' + esc(all.join('. ')) + '">🔊 ' + esc(t('listen')) + '</button>';
+    return h;
+  }
+  function vRemind() {
+    var t0 = today();
+    return backBtn() + '<div class="h1">' + esc(t('remTitle')) + '</div>' +
+      '<label for="lmp" class="h2" style="display:block;margin-top:4px">' + esc(t('remEnter')) + '</label>' +
+      '<input type="date" id="lmp" value="' + esc(S.lmp) + '" min="' + iso(addDays(t0, -300)) + '" max="' + iso(t0) + '">' +
+      '<div id="plan"></div>';
+  }
+  function schedule(inf) {
+    var due = addDays(inf.lmp, 280);
+    return {
+      due: due,
+      checks: CHECK.map(function (w) { return { w: w, d: addDays(inf.lmp, w * 7) }; }),
+      vacc: VACC.map(function (x) { return { k: x[0], d: addDays(due, x[1]) }; })
+    };
+  }
+  function plan() {
+    var el = $('plan'), v = $('lmp').value;
+    if (!v) { el.innerHTML = ''; return; }
+    var inf = lmpInfo(v);
+    if (!inf) { el.innerHTML = '<div class="warn">' + esc(t('remInvalid')) + '</div>'; return; }
+    S.lmp = v; store('lmp', v);
+    var sc = schedule(inf), tdy = today(), nextSet = false;
+    var h = '<div class="weekbox"><div>' + esc(t('remNow', { n: inf.week })) + '</div><div class="note">' + esc(t('remDue')) + '</div><div class="due">' + esc(fmt(sc.due)) + '</div></div>';
+    h += '<div class="h2">' + esc(t('remVisits')) + '</div>';
+    sc.checks.forEach(function (c) {
+      var cls = 'row', tag = '';
+      if (c.d < tdy) { cls += ' done'; tag = '✓ ' + t('remDone'); }
+      else if (!nextSet) { cls += ' next'; tag = t('remNext'); nextSet = true; }
+      h += '<div class="' + cls + '"><span><b>' + esc(t('remWeekN', { n: c.w })) + '</b><br>' + esc(fmt(c.d)) + '</span>' + (tag ? '<span class="tag">' + esc(tag) + '</span>' : '') + '</div>';
+    });
+    h += card('💊', t('remDaily')) + card('💉', t('remTT'));
+    h += '<div class="h2">' + esc(t('remBaby')) + '</div>';
+    sc.vacc.forEach(function (c) {
+      h += '<div class="row"><span><b>' + esc(t(c.k)) + '</b><br>' + esc(fmt(c.d)) + '</span></div>';
+    });
+    h += '<p class="note">' + esc(t('remVaccNote')) + '</p>';
+    h += '<button class="cta" data-act="ics">📅 ' + esc(t('remCal')) + '</button>';
+    el.innerHTML = h;
+  }
+  function icsEsc(s) { return String(s).replace(/[\\,;]/g, function (m) { return '\\' + m; }); }
+  function makeIcs() {
+    var inf = lmpInfo(S.lmp);
+    if (!inf) { return; }
+    var sc = schedule(inf), ev = [];
+    sc.checks.forEach(function (c) { ev.push({ d: c.d, s: 'MaaCare - ' + t('remVisits') + ' - ' + t('remWeekN', { n: c.w }) }); });
+    sc.vacc.forEach(function (c) { ev.push({ d: c.d, s: 'MaaCare - ' + t('remBaby') + ' - ' + t(c.k) }); });
+    var stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    var ln = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MaaCare//EN', 'CALSCALE:GREGORIAN'];
+    ev.forEach(function (e, i) {
+      var a = iso(e.d).split('-').join(''), b = iso(addDays(e.d, 1)).split('-').join('');
+      ln.push('BEGIN:VEVENT', 'UID:maacare-' + a + '-' + i + '@maacare', 'DTSTAMP:' + stamp,
+        'DTSTART;VALUE=DATE:' + a, 'DTEND;VALUE=DATE:' + b, 'SUMMARY:' + icsEsc(e.s),
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(e.s), 'TRIGGER:-P1D', 'END:VALARM', 'END:VEVENT');
+    });
+    ln.push('END:VCALENDAR');
+    var blob = new Blob([ln.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'MaaCare-reminders.ics';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  function foot() {
+    var unrev = REVIEWED_LANGS.indexOf(S.lang) < 0;
+    return '<p class="note">' + esc(t('disclaimer')) + '</p>' + (unrev ? '<div class="warn">ℹ️ ' + esc(t('unreviewed')) + '</div>' : '');
+  }
+
+  /* ---------- app ---------- */
+  function render() {
+    var l = L();
+    document.documentElement.lang = l.code;
+    document.documentElement.dir = l.dir;
+    $('langName').textContent = l.name;
+    var h = '';
+    if (S.screen === 'lang') { h = vLang(); }
+    else if (S.screen === 'preg') { h = vPreg(); }
+    else if (S.screen === 'remind') { h = vRemind(); }
+    else if (S.screen === 'danger') { h = vDanger(); }
+    else { h = vHome(); }
+    $('app').innerHTML = h;
+    $('foot').innerHTML = foot();
+    if (S.screen === 'remind') { plan(); }
+  }
+  function go(s) {
+    if (window.speechSynthesis) { window.speechSynthesis.cancel(); }
+    S.screen = s;
+    if (s === 'preg') {
+      var inf = lmpInfo(S.lmp);
+      if (inf) { S.week = Math.min(40, Math.max(1, inf.week)); }
+    }
+    render();
+    if (window.scrollTo) { window.scrollTo(0, 0); }
+  }
+  function setLang(c) {
+    S.lang = c; store('lang', c); S.screen = 'home'; render();
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('[data-go],[data-lang],[data-say],[data-act]') : null;
+    if (!b) { return; }
+    var d = b.dataset;
+    if (d.go) { go(d.go); }
+    else if (d.lang) { setLang(d.lang); }
+    else if (d.say) { speak(d.say); }
+    else if (d.act === 'ics') { makeIcs(); }
+  });
+  function onInput(e) {
+    if (e.target.id === 'slider') { S.week = +e.target.value; updPreg(); }
+    else if (e.target.id === 'lmp') { plan(); }
+  }
+  document.addEventListener('input', onInput);
+  document.addEventListener('change', onInput);
+  $('langBtn').addEventListener('click', function () { S.screen = 'lang'; render(); });
+
+  var saved = store('lang');
+  S.lang = (saved && I18N[saved]) ? saved : 'en';
+  S.screen = saved ? 'home' : 'lang';
+  S.lmp = store('lmp') || '';
+  render();
+
+  if (window.speechSynthesis) { window.speechSynthesis.getVoices(); }
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
