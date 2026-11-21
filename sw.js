@@ -1,5 +1,5 @@
-/* MaaCare service worker: caches the app so it works offline after the first visit. */
-var CACHE = 'maacare-v2';
+/* MaaCare service worker: opens online first (always the newest version), falls back to the saved copy when offline. */
+var CACHE = 'maacare-v3';
 var ASSETS = ['./', './index.html', './i18n.js', './manifest.webmanifest'];
 
 self.addEventListener('install', function (e) {
@@ -17,8 +17,12 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') { return; }
   e.respondWith(
-    caches.match(e.request).then(function (r) {
-      return r || fetch(e.request).catch(function () { return caches.match('./index.html'); });
+    fetch(e.request).then(function (res) {
+      var copy = res.clone();
+      caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+      return res;
+    }).catch(function () {
+      return caches.match(e.request).then(function (r) { return r || caches.match('./index.html'); });
     })
   );
 });
