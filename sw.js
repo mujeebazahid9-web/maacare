@@ -1,6 +1,6 @@
 /* MaaCare service worker: caches the app so it works offline after the first visit. */
-var CACHE = 'maacare-v1';
-var ASSETS = ['./', './index.html', './i18n.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+var CACHE = 'maacare-v2';
+var ASSETS = ['./', './index.html', './i18n.js', './manifest.webmanifest'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }));
